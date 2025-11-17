@@ -18,7 +18,7 @@
    cd NoSudoVPN
    ```
 
-2. 配置订阅（任选其一）并启动（首次执行即可完成订阅拉取与服务启动）：
+2. 首次配置订阅并启动（只需执行一次即可完成订阅拉取与服务启动）：
 
    - 运行时传参：
      ```bash
@@ -32,7 +32,7 @@
      bash start.sh
      ```
 
-   > 只要订阅内容不需要刷新，后续无需再传入链接或重新运行 `bash start.sh`。日常只需使用 `proxy_on`/`proxy_off` 或按需执行 `bash restart.sh` 即可。需要更新节点时再运行 `bash start.sh`。
+   > 只要订阅内容不需要刷新，后续无需再传入链接或重新运行 `bash start.sh`。需要更新节点列表（例如订阅变动）时，再执行 `bash start.sh`。
 
    首次启动会输出以下信息，请记录：
 
@@ -40,24 +40,20 @@
    - Dashboard Secret（用于登录 Dashboard）
    - 本地 HTTP/HTTPS 代理端口
 
-3. 在当前 Shell 加载代理函数：
+3. 日常使用流程（每次开启新终端时按需执行）：
 
    ```bash
    source ~/.clash_env.sh
    ```
 
-   之后即可使用：
-
-   ```bash
-   proxy_on   # 或 Proxy_on，开启代理
-   proxy_off  # 或 Proxy_off，关闭代理
-   ```
+   - 执行 `proxy_on`（或 `Proxy_on`）开启代理，`proxy_off`（或 `Proxy_off`）关闭代理。
+   - 需要切换节点时，直接登录 Dashboard（下一节）操作即可，Clash 会实时生效，不必重跑脚本。
 
 ## 节点选择与 Dashboard
 
 1. 打开浏览器访问 `http://<服务器IP>:9090/ui`（本地环境可用 `localhost`）。  
 2. 输入启动脚本输出的 Secret，或执行 `echo $CLASH_DASHBOARD_SECRET` 查看。  
-3. 进入 Dashboard → 「Proxies」页面选择想要的节点，生效即时，无需重启。
+3. 进入 Dashboard → 「Proxies」页面选择想要的节点。切换结果立刻作用于当前 Clash 进程，无需重新执行 `bash start.sh`。
 
 ## 自定义订阅 & Secret
 
