@@ -18,17 +18,17 @@
    cd NoSudoVPN
    ```
 
-2. 首次配置并启动（只需执行一次即可完成订阅拉取与服务启动）：
+2. 首次配置并启动，以下三种方法三选一（只需执行一次即可完成订阅拉取与服务启动）：
 
-   - 使用订阅链接：
+   - 1、使用订阅链接：
      ```bash
      bash start.sh "https://你的订阅地址/clash.yaml"
      ```
-   - 使用本地 YAML（例如你从其他客户端导出的配置）：
+   - 2、使用本地 YAML（例如你从其他客户端导出的配置）：
      ```bash
      bash start.sh ./conf/my-clash.yaml
      ```
-   - 或通过 `.env` 固定来源：
+   - 3、或通过 `.env` 固定来源：
      ```bash
      cp .env.example .env
      # 方案 A：设置 CLASH_URL=你的订阅链接
