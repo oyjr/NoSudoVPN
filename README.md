@@ -46,8 +46,12 @@
    - 本地 HTTP/HTTPS 代理端口
 
 3. 日常使用流程：
+   - 如果你是从上一步直接到这里，一般还需要重新开个终端
    - 登录服务器或打开新终端后，只需执行 `proxy_on`（或 `Proxy_on`）即可启用代理，执行 `proxy_off`（或 `Proxy_off`）即可关闭。
    - 需要切换节点时，直接登录 Dashboard（下一节）操作即可，Clash 会实时生效，不必重跑脚本。
+  
+4. 测试连接：
+   - `curl -I www.google.com`如果有东西出来就正常了
 
 ## 节点选择与 Dashboard
 
