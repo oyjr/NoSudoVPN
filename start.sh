@@ -8,9 +8,16 @@ source "${PROJECT_ROOT}/scripts/common.sh"
 copy_local_config() {
   local source=$1
   local dest=$2
+  local abs_source abs_dest
   if [ ! -s "$source" ]; then
     echo "本地配置文件不存在或为空: $source" >&2
     return 1
+  fi
+  abs_source=$(cd "$(dirname "$source")" && pwd -P)/$(basename "$source")
+  abs_dest=$(cd "$(dirname "$dest")" && pwd -P)/$(basename "$dest")
+  if [ "$abs_source" = "$abs_dest" ]; then
+    echo "本地配置已位于目标目录，跳过拷贝。"
+    return 0
   fi
   cp "$source" "$dest"
 }
