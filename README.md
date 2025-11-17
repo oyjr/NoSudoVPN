@@ -18,7 +18,7 @@
    cd NoSudoVPN
    ```
 
-2. 配置订阅（任选其一）并启动：
+2. 配置订阅（任选其一）并启动（首次执行即可完成订阅拉取与服务启动）：
 
    - 运行时传参：
      ```bash
@@ -31,6 +31,8 @@
      # (可选) 设置 CLASH_SECRET=固定Dashboard密码
      bash start.sh
      ```
+
+   > 只要订阅内容不需要刷新，后续无需再传入链接或重新运行 `bash start.sh`。日常只需使用 `proxy_on`/`proxy_off` 或按需执行 `bash restart.sh` 即可。需要更新节点时再运行 `bash start.sh`。
 
    首次启动会输出以下信息，请记录：
 
@@ -66,8 +68,8 @@
 
 | 目标             | 命令               | 说明 |
 |------------------|--------------------|------|
-| 更新订阅并重启   | `bash start.sh`    | 重新获取订阅、覆盖配置、重启 Clash |
-| 仅重启后端       | `bash restart.sh`  | 不重新下载，使用现有 `conf/config.yaml` |
+| 更新订阅并重启   | `bash start.sh`    | 需要拉取最新订阅或更换订阅时执行 |
+| 仅重启后端       | `bash restart.sh`  | 日常使用场景，沿用现有 `conf/config.yaml` |
 | 停止服务并清理   | `bash shutdown.sh` | 终止 Clash，执行 `proxy_off` 并删除 `~/.clash_env.sh` |
 | 查看日志         | `tail -f logs/clash.log` | 追踪 Clash 输出 |
 
