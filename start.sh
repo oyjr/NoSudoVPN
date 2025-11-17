@@ -5,8 +5,6 @@ PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=./scripts/common.sh
 source "${PROJECT_ROOT}/scripts/common.sh"
 
-DEFAULT_CLASH_URL="http://47.242.55.240/link/LKDwAJFjNKwSowOy?clash=2"
-
 download_config() {
   local url=$1
   local dest=$2
@@ -68,9 +66,14 @@ generate_secret() {
 ensure_executables "$PROJECT_ROOT"
 load_env_file "${PROJECT_ROOT}/.env"
 
-CLASH_URL=${1:-${CLASH_URL:-$DEFAULT_CLASH_URL}}
+CLASH_URL=${1:-${CLASH_URL:-}}
 if [ -z "$CLASH_URL" ]; then
-  echo "未提供订阅地址" >&2
+  cat <<'EOF' >&2
+未提供订阅地址。
+请通过以下方式之一设置：
+  1. 运行时传参：bash start.sh "https://example.com/clash.yaml"
+  2. 在 .env 中设置 CLASH_URL=订阅地址
+EOF
   exit 1
 fi
 

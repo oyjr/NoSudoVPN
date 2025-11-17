@@ -1,6 +1,6 @@
 # NoSudoVPN
 
-一套针对「没有 sudo / root 权限」的 Linux Shell 脚本，帮助你快速拉起 Clash、控制代理开关，并通过 Dashboard 选择节点。项目默认集成订阅链接 <http://47.242.55.240/link/LKDwAJFjNKwSowOy?clash=2>，开箱即用，也可替换为自己的订阅。
+一套针对「没有 sudo / root 权限」的 Linux Shell 脚本，帮助你快速拉起 Clash、控制代理开关，并通过 Dashboard 选择节点。准备好个人的 Clash 订阅链接后即可使用。
 
 ## 功能亮点
 
@@ -18,11 +18,19 @@
    cd NoSudoVPN
    ```
 
-2. 直接启动（使用内置订阅）：
+2. 配置订阅（任选其一）并启动：
 
-   ```bash
-   bash start.sh
-   ```
+   - 运行时传参：
+     ```bash
+     bash start.sh "https://你的订阅地址/clash.yaml"
+     ```
+   - 或使用 `.env`：
+     ```bash
+     cp .env.example .env
+     # 编辑 .env，设置 CLASH_URL=你的订阅链接
+     # (可选) 设置 CLASH_SECRET=固定Dashboard密码
+     bash start.sh
+     ```
 
    首次启动会输出以下信息，请记录：
 
@@ -51,17 +59,7 @@
 
 ## 自定义订阅 & Secret
 
-- 默认订阅：`http://47.242.55.240/link/LKDwAJFjNKwSowOy?clash=2`。  
-- 如需自定义，任选其一：
-  1. 运行时传参：
-     ```bash
-     bash start.sh "https://example.com/clash.yaml"
-     ```
-  2. 或使用 `.env`：
-     ```bash
-     cp .env.example .env
-     # 编辑 .env，设置 CLASH_URL 与（可选）CLASH_SECRET
-     ```
+- 订阅来源完全由你控制：可在运行时传入，也可写入 `.env` 的 `CLASH_URL`。
 - 留空 `CLASH_SECRET` 会自动生成随机值；想复用固定 Secret 时可在 `.env` 中预设。
 
 ## 常用命令
