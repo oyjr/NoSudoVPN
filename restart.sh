@@ -7,34 +7,27 @@ source "${PROJECT_ROOT}/scripts/common.sh"
 
 CONF_DIR="${PROJECT_ROOT}/conf"
 LOG_DIR="${PROJECT_ROOT}/logs"
+CONFIG_FILE="${CONF_DIR}/config.yaml"
 
-MSG_OK="服务关闭成功！"
-MSG_FAIL="服务关闭失败！"
-stop_clash_processes
-STATUS=$?
-if_success "$MSG_OK" "$MSG_FAIL" $STATUS
-
-sleep 3
-
-CPU_ARCH=$(detect_cpu_arch || true)
-if [ -z "${CPU_ARCH:-}" ]; then
-  echo -e "\033[31m\n[ERROR] Failed to obtain CPU architecture！\033[0m"
+if [ ! -s "$CONFIG_FILE" ]; then
+  echo "未找到配置文件: $CONFIG_FILE，请先执行 bash start.sh" >&2
   exit 1
 fi
 
-MSG_OK="服务启动成功！"
-MSG_FAIL="服务启动失败！"
-if [[ "$CPU_ARCH" =~ x86_64 || "$CPU_ARCH" =~ amd64 ]]; then
-  nohup "$PROJECT_ROOT/bin/clash-linux-amd64" -d "$CONF_DIR" &> "$LOG_DIR/clash.log" &
-  STATUS=$?
-elif [[ "$CPU_ARCH" =~ aarch64 || "$CPU_ARCH" =~ arm64 ]]; then
-  nohup "$PROJECT_ROOT/bin/clash-linux-arm64" -d "$CONF_DIR" &> "$LOG_DIR/clash.log" &
-  STATUS=$?
-elif [[ "$CPU_ARCH" =~ armv7 ]]; then
-  nohup "$PROJECT_ROOT/bin/clash-linux-armv7" -d "$CONF_DIR" &> "$LOG_DIR/clash.log" &
-  STATUS=$?
-else
-  echo -e "\033[31m\n[ERROR] Unsupported CPU Architecture！\033[0m"
-  exit 1
-fi
-if_success "$MSG_OK" "$MSG_FAIL" $STATUS
+action "停止已存在的 Clash 进程" stop_clash_processes
+sleep 1
+action "重新启动 Clash 服务" start_clash_service "$PROJECT_ROOT" "$CONF_DIR" "$LOG_DIR"
+
+HTTP_PORT=$(proxy_port_from_config "$CONFIG_FILE")
+SECRET=$(secret_from_config "$CONFIG_FILE" || true)
+write_user_env_file "${SECRET:-UNSET}" "$HTTP_PORT"
+ensure_bashrc_hook
+
+cat <<EOF
+
+Clash 已重新启动。
+- Dashboard 地址: http://<服务器IP>:9090/ui
+- Dashboard Secret: ${SECRET:-请查看配置文件}
+- 当前代理端口: ${HTTP_PORT}
+如需重新拉取订阅，请运行 bash start.sh。
+EOF

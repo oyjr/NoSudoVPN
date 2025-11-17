@@ -5,98 +5,110 @@ PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=./scripts/common.sh
 source "${PROJECT_ROOT}/scripts/common.sh"
 
+DEFAULT_CLASH_URL="http://47.242.55.240/link/LKDwAJFjNKwSowOy?clash=2"
+
+download_config() {
+  local url=$1
+  local dest=$2
+  local tmp success=1
+  tmp=$(mktemp)
+
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 "$url" -o "$tmp"; then
+      success=0
+    fi
+  fi
+
+  if [ $success -ne 0 ] && command -v wget >/dev/null 2>&1; then
+    if wget -q -O "$tmp" "$url"; then
+      success=0
+    fi
+  fi
+
+  if [ $success -ne 0 ]; then
+    rm -f "$tmp"
+    echo "无法下载订阅，请检查网络或订阅地址: $url" >&2
+    return 1
+  fi
+
+  mv "$tmp" "$dest"
+}
+
+set_yaml_field() {
+  local file=$1
+  local key=$2
+  local value=$3
+  local escaped
+  escaped=$(printf '%s' "$value" | sed -e 's/[&@]/\\&/g')
+  if grep -Eq "^[[:space:]#]*${key}:" "$file"; then
+    sed -i -E "s@^[[:space:]#]*${key}:[[:space:]]*.*@${key}: ${escaped}@" "$file"
+  else
+    printf '\n%s: %s\n' "$key" "$value" >> "$file"
+  fi
+}
+
+configure_clash_file() {
+  local file=$1
+  local dashboard_dir=$2
+  local secret=$3
+  set_yaml_field "$file" "external-controller" "0.0.0.0:9090"
+  set_yaml_field "$file" "external-ui" "$dashboard_dir"
+  set_yaml_field "$file" "secret" "$secret"
+  set_yaml_field "$file" "allow-lan" "true"
+}
+
+generate_secret() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 32
+  else
+    head -c 16 /dev/urandom | hexdump -v -e '/1 "%02x"'
+  fi
+}
+
 ensure_executables "$PROJECT_ROOT"
 load_env_file "${PROJECT_ROOT}/.env"
 
-CONF_DIR="${PROJECT_ROOT}/conf"
-TEMP_DIR="${PROJECT_ROOT}/temp"
-LOG_DIR="${PROJECT_ROOT}/logs"
-
-CLASH_URL=${CLASH_URL:-}
+CLASH_URL=${1:-${CLASH_URL:-$DEFAULT_CLASH_URL}}
 if [ -z "$CLASH_URL" ]; then
-  echo "Error: CLASH_URL is not set. Please set it in .env or export it before running start.sh." >&2
+  echo "未提供订阅地址" >&2
   exit 1
 fi
 
-SECRET=${CLASH_SECRET:-$(openssl rand -hex 32)}
+SECRET=${CLASH_SECRET:-$(generate_secret)}
+CONF_DIR="${PROJECT_ROOT}/conf"
+LOG_DIR="${PROJECT_ROOT}/logs"
+DASHBOARD_DIR="${PROJECT_ROOT}/dashboard/public"
+CONFIG_FILE="${CONF_DIR}/config.yaml"
 
-CPU_ARCH=$(detect_cpu_arch || true)
-if [ -z "${CPU_ARCH:-}" ]; then
-  echo "Failed to obtain CPU architecture" >&2
-  exit 1
-fi
+mkdir -p "$CONF_DIR" "$LOG_DIR"
 
-for var in http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY; do
+for var in http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY; do
   unset "$var" || true
 done
 
-echo -e '\n正在检测订阅地址...'
-MSG_OK="Clash订阅地址可访问！"
-MSG_FAIL="Clash订阅地址不可访问！"
-curl -o /dev/null -L -k -sS --retry 5 -m 10 --connect-timeout 10 -w "%{http_code}" "$CLASH_URL" | grep -E '^[23][0-9]{2}$' &>/dev/null
-STATUS=$?
-if_success "$MSG_OK" "$MSG_FAIL" $STATUS
+echo -e "\n=== 启动 NoSudoVPN ==="
+echo "订阅地址: $CLASH_URL"
 
-echo -e '\n正在下载Clash配置文件...'
-MSG_OK="配置文件config.yaml下载成功！"
-MSG_FAIL="配置文件config.yaml下载失败，退出启动！"
-mkdir -p "$TEMP_DIR"
-curl -L -k -sS --retry 5 -m 10 -o "$TEMP_DIR/clash.yaml" "$CLASH_URL"
-STATUS=$?
-if [ $STATUS -ne 0 ]; then
-  for _ in {1..10}; do
-    wget -q --no-check-certificate -O "$TEMP_DIR/clash.yaml" "$CLASH_URL" && { STATUS=0; break; }
-  done
-fi
-if_success "$MSG_OK" "$MSG_FAIL" $STATUS
+action "下载 Clash 配置" download_config "$CLASH_URL" "$CONFIG_FILE"
+action "写入 Dashboard/Secret 配置" configure_clash_file "$CONFIG_FILE" "$DASHBOARD_DIR" "$SECRET"
 
-cp -a "$TEMP_DIR/clash.yaml" "$TEMP_DIR/clash_config.yaml"
+HTTP_PORT=$(proxy_port_from_config "$CONFIG_FILE")
 
-if [[ "$CPU_ARCH" =~ x86_64 || "$CPU_ARCH" =~ amd64 ]]; then
-  echo -e '\n判断订阅内容是否符合clash配置文件标准:'
-  bash "${PROJECT_ROOT}/scripts/clash_profile_conversion.sh" "$TEMP_DIR"
-  sleep 3
-fi
-
-sed -n '/^proxies:/,$p' "$TEMP_DIR/clash_config.yaml" > "$TEMP_DIR/proxy.txt"
-cat "$TEMP_DIR/templete_config.yaml" > "$TEMP_DIR/config.yaml"
-cat "$TEMP_DIR/proxy.txt" >> "$TEMP_DIR/config.yaml"
-cp "$TEMP_DIR/config.yaml" "$CONF_DIR/"
-
-DASHBOARD_DIR="${PROJECT_ROOT}/dashboard/public"
-sed -ri "s@^# external-ui:.*@external-ui: ${DASHBOARD_DIR}@g" "$CONF_DIR/config.yaml"
-sed -ri "s@(secret: ).*@\1${SECRET}@g" "$CONF_DIR/config.yaml"
-
-HTTP_PORT=$(awk '/^port:/ {print $2; exit}' "$CONF_DIR/config.yaml")
-
-echo -e '\n正在启动Clash服务...'
-MSG_OK="服务启动成功！"
-MSG_FAIL="服务启动失败！"
-if [[ "$CPU_ARCH" =~ x86_64 || "$CPU_ARCH" =~ amd64 ]]; then
-  nohup "$PROJECT_ROOT/bin/clash-linux-amd64" -d "$CONF_DIR" &> "$LOG_DIR/clash.log" &
-  STATUS=$?
-elif [[ "$CPU_ARCH" =~ aarch64 || "$CPU_ARCH" =~ arm64 ]]; then
-  nohup "$PROJECT_ROOT/bin/clash-linux-arm64" -d "$CONF_DIR" &> "$LOG_DIR/clash.log" &
-  STATUS=$?
-elif [[ "$CPU_ARCH" =~ armv7 ]]; then
-  nohup "$PROJECT_ROOT/bin/clash-linux-armv7" -d "$CONF_DIR" &> "$LOG_DIR/clash.log" &
-  STATUS=$?
-else
-  echo -e "\033[31m\n[ERROR] Unsupported CPU Architecture！\033[0m"
-  exit 1
-fi
-if_success "$MSG_OK" "$MSG_FAIL" $STATUS
-
-echo ''
-echo -e "Clash Dashboard 访问地址: http://<ip>:9090/ui"
-echo -e "Secret: ${SECRET}"
-echo ''
+action "停止已存在的 Clash 进程" stop_clash_processes
+action "启动 Clash 服务" start_clash_service "$PROJECT_ROOT" "$CONF_DIR" "$LOG_DIR"
 
 write_user_env_file "$SECRET" "$HTTP_PORT"
 ensure_bashrc_hook
-# shellcheck source=/dev/null
-source "$HOME/.clash_env.sh"
 
-echo -e "请执行以下命令加载环境变量: source ~/.clash_env.sh\n"
-echo -e "请执行以下命令开启系统代理: proxy_on\n"
-echo -e "若要临时关闭系统代理，请执行: proxy_off\n"
+cat <<EOF
+
+Clash 已在后台运行！
+- Dashboard 地址: http://<服务器IP>:9090/ui
+- Dashboard Secret: ${SECRET}
+- HTTP/HTTPS 代理端口: ${HTTP_PORT}
+- 订阅来源: ${CLASH_URL}
+
+首次使用请在当前 Shell 执行: source ~/.clash_env.sh
+之后可用 proxy_on / Proxy_on 开启代理，用 proxy_off / Proxy_off 关闭代理。
+如需刷新节点，重新运行 bash start.sh 即可。
+EOF
