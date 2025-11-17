@@ -40,13 +40,10 @@
    - Dashboard Secret（用于登录 Dashboard）
    - 本地 HTTP/HTTPS 代理端口
 
-3. 日常使用流程（每次开启新终端时按需执行）：
+3. 日常使用流程：
 
-   ```bash
-   source ~/.clash_env.sh
-   ```
-
-   - 执行 `proxy_on`（或 `Proxy_on`）开启代理，`proxy_off`（或 `Proxy_off`）关闭代理。
+   - `start.sh` 会自动在当前 Shell 加载 `~/.clash_env.sh`，并在 `.bashrc` 中添加一次性钩子，保证之后新开的终端都会自动生效，无需重复执行 `source ~/.clash_env.sh`。
+   - 每个终端默认即处于代理开启状态；若暂时不需要，执行 `proxy_off`（或 `Proxy_off`）即可关闭，再用 `proxy_on`（或 `Proxy_on`）重新开启。
    - 需要切换节点时，直接登录 Dashboard（下一节）操作即可，Clash 会实时生效，不必重跑脚本。
 
 ## 节点选择与 Dashboard
