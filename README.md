@@ -18,17 +18,22 @@
    cd NoSudoVPN
    ```
 
-2. 首次配置订阅并启动（只需执行一次即可完成订阅拉取与服务启动）：
+2. 首次配置并启动（只需执行一次即可完成订阅拉取与服务启动）：
 
-   - 运行时传参：
+   - 使用订阅链接：
      ```bash
      bash start.sh "https://你的订阅地址/clash.yaml"
      ```
-   - 或使用 `.env`：
+   - 使用本地 YAML（例如你从其他客户端导出的配置）：
+     ```bash
+     bash start.sh ./conf/my-clash.yaml
+     ```
+   - 或通过 `.env` 固定来源：
      ```bash
      cp .env.example .env
-     # 编辑 .env，设置 CLASH_URL=你的订阅链接
-     # (可选) 设置 CLASH_SECRET=固定Dashboard密码
+     # 方案 A：设置 CLASH_URL=你的订阅链接
+     # 方案 B：设置 CLASH_FILE=/path/to/config.yaml
+     # (可选) 设置 CLASH_SECRET=固定 Dashboard 密码
      bash start.sh
      ```
 
@@ -52,7 +57,7 @@
 
 ## 自定义订阅 & Secret
 
-- 订阅来源完全由你控制：可在运行时传入，也可写入 `.env` 的 `CLASH_URL`。
+- 订阅来源完全由你控制：可在运行时传入，也可写入 `.env` 的 `CLASH_URL`；若已有现成 YAML，可将路径填入 `CLASH_FILE` 或直接 `bash start.sh ./your.yaml`。
 - 留空 `CLASH_SECRET` 会自动生成随机值；想复用固定 Secret 时可在 `.env` 中预设。
 
 ## 常用命令
@@ -69,7 +74,7 @@
 ## 日志与排障
 
 - Clash 主日志：`logs/clash.log`
-- 订阅下载失败：确认服务器能访问订阅地址，或通过参数/`.env` 替换订阅。
+- 订阅下载失败：确认服务器能访问订阅地址，可换网络/稍后再试；或将 YAML 保存到本地并执行 `bash start.sh ./your.yaml`，也可以在 `.env` 中设置 `CLASH_FILE`。
 - Secret 遗失：执行 `grep -m1 '^secret:' conf/config.yaml` 或 `echo $CLASH_DASHBOARD_SECRET` 查看。
 
 ## 卸载/清理
