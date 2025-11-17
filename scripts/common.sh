@@ -81,12 +81,6 @@ write_user_env_file() {
   local port=${2:-7890}
   cat <<EOF2 > "$HOME/.clash_env.sh"
 export CLASH_DASHBOARD_SECRET=${secret}
-export http_proxy=http://127.0.0.1:${port}
-export https_proxy=http://127.0.0.1:${port}
-export all_proxy=socks5://127.0.0.1:${port}
-export HTTP_PROXY=\$http_proxy
-export HTTPS_PROXY=\$https_proxy
-export ALL_PROXY=\$all_proxy
 
 proxy_on() {
   export http_proxy=http://127.0.0.1:${port}

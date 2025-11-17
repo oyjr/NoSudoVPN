@@ -113,6 +113,6 @@ Clash 已在后台运行！
 - HTTP/HTTPS 代理端口: ${HTTP_PORT}
 - 订阅来源: ${CLASH_URL}
 
-当前 Shell 已自动加载代理。新开终端会在启动时自动 source ~/.clash_env.sh，可直接使用 proxy_on / Proxy_on 开启代理，用 proxy_off / Proxy_off 关闭代理。
+当前 Shell 已加载 proxy_on/proxy_off 函数，新开终端也会自动加载（.bashrc 钩子已写入）。请执行 proxy_on / Proxy_on 开启代理，proxy_off / Proxy_off 关闭代理。
 如需刷新节点，重新运行 bash start.sh 即可。
 EOF
